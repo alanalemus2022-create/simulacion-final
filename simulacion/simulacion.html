@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratorio Virtual - Física Moderna</title>
+    <!-- Plotly.js para las gráficas científicas -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        /* =========================================
+           VARIABLES DE DISEÑO (DARK EMERALD THEME)
+           ========================================= */
+        :root {
+            --bg-deep: #09090b;       
+            --bg-panel: rgba(24, 24, 27, 0.85); 
+            --border-color: rgba(255, 255, 255, 0.1);
+            
+            --accent-main: #10b981;   /* Verde Esmeralda */
+            --accent-glow: rgba(16, 185, 129, 0.25);
+            
+            --text-light: #f3f4f6;
+            --text-muted: #a1a1aa;
+            
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            
+            --dot-pattern: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-deep); }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-main); }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-deep);
+            color: var(--text-light);
+            height: 100vh;
+            display: flex;
+            overflow: hidden; 
+        }
+
+        /* =========================================
+           SIDEBAR (BARRA LATERAL)
+           ========================================= */
+        .sidebar {
+            width: 320px;
+            background: var(--bg-panel);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 2.5rem 1.5rem;
+            box-shadow: 5px 0 30px rgba(0,0,0,0.4);
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .logo-area { margin-bottom: 2.5rem; }
+
+        .logo-title {
+            font-size: 1.6rem; font-weight: 800; color: white;
+            line-height: 1.1; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .logo-title span { color: var(--accent-main); }
+
+        .students-info {
+            font-size: 0.8rem; color: var(--text-muted); line-height: 1.6;
+            background: rgba(0,0,0,0.4); padding: 1.2rem;
+            border-radius: var(--radius-md); border: 1px solid var(--border-color);
+        }
+        .students-info strong { color: var(--text-light); display: block; margin-bottom: 8px; font-size: 0.9rem;}
+
+        .nav-menu { display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1.5rem; }
+
+        .nav-item {
+            background: transparent; border: 1px solid transparent;
+            padding: 1rem 1.2rem; font-size: 1rem; font-weight: 600;
+            color: var(--text-muted); border-radius: var(--radius-md);
+            cursor: pointer; transition: all 0.3s ease; text-align: left;
+            display: flex; align-items: center; gap: 12px;
+        }
+
+        .nav-item:hover { background: rgba(255,255,255,0.03); color: var(--text-light); }
+
+        .nav-item.active {
+            background: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent-glow);
+            color: var(--accent-main); box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        /* =========================================
+           ÁREA PRINCIPAL Y PANELES
+           ========================================= */
+        .main-content { flex-grow: 1; padding: 2rem; overflow-y: auto; position: relative; }
+
+        .tab-view {
+            display: none; opacity: 0; transform: translateY(15px);
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .tab-view.active {
+            display: grid; grid-template-columns: 320px 1fr; gap: 2rem;
+            opacity: 1; transform: translateY(0); height: 100%; min-height: 650px;
+        }
+
+        .panel {
+            background: var(--bg-panel); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color); border-radius: var(--radius-lg);
+            padding: 2rem; box-shadow: var(--glass-shadow); display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            font-size: 1.2rem; font-weight: 700; color: white;
+            margin-bottom: 1.8rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
+        /* FORMULARIOS Y CONTROLES */
+        .form-group { margin-bottom: 1.5rem; }
+        
+        label { 
+            display: block; font-size: 0.8rem; font-weight: 600; 
+            color: var(--text-muted); margin-bottom: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        
+        input {
+            width: 100%; padding: 1rem; font-size: 1.1rem; 
+            background-color: rgba(0,0,0,0.6); border: 1px solid var(--border-color);
+            border-radius: var(--radius-md); color: white; transition: all 0.3s;
+        }
+        input:focus { 
+            outline: none; border-color: var(--accent-main); 
+            box-shadow: 0 0 0 3px var(--accent-glow); background-color: rgba(0,0,0,0.8);
+        }
+
+        .btn-run {
+            margin-top: auto; width: 100%; padding: 1.2rem; font-size: 1.05rem; font-weight: 700;
+            color: #000; background: var(--accent-main); border: none; border-radius: var(--radius-md);
+            cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+        .btn-run:hover { background: #34d399; transform: translateY(-2px); box-shadow: 0 8px 25px var(--accent-glow); }
+        .btn-run:active { transform: translateY(1px); }
+        
+        /* RESULTADOS NUMÉRICOS */
+        .results-box {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .results-box.visible { display: block; animation: fadeIn 0.5s ease; }
+        .results-box h4 { color: var(--accent-main); margin-bottom: 0.8rem; font-size: 1rem; text-transform: uppercase;}
+        .result-item { display: flex; justify-content: space-between; margin-bottom: 0.5rem; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 0.3rem;}
+        .result-item span { color: var(--text-muted); }
+        .result-item strong { color: white; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* PIZARRA DE GRÁFICAS */
+        .smartboard {
+            background-color: #09090b; background-image: var(--dot-pattern);
+            background-size: 30px 30px; background-position: center;
+            position: relative; padding: 1rem; display: flex; flex-direction: column;
+        }
+
+        .board-empty-state {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: var(--text-muted); text-align: center; font-size: 1.1rem; font-weight: 500;
+            pointer-events: none; transition: opacity 0.3s;
+        }
+        .board-empty-state span { display: block; font-size: 3.5rem; margin-bottom: 1.2rem; opacity: 0.2; }
+
+        .chart-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; width: 100%; flex-grow: 1; min-height: 0; opacity: 0; transition: opacity 0.5s; }
+        .chart-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%; flex-grow: 1; min-height: 0; opacity: 0; transition: opacity 0.5s; }
+        .chart-wrapper { width: 100%; height: 100%; min-height: 350px; }
+        
+        /* TABLA DE RESULTADOS BOHR */
+        .bohr-table-wrapper {
+            margin-top: 1.5rem;
+            max-height: 220px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: #18181b; 
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.5); 
+            position: relative;
+            z-index: 20; 
+            display: none;
+        }
+        .bohr-table-wrapper.visible { display: block; animation: fadeIn 0.5s ease; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem;}
+        th { background: #0f172a; color: var(--accent-main); padding: 0.8rem 0.5rem; text-align: left; position: sticky; top: 0; border-bottom: 1px solid var(--accent-glow);}
+        td { padding: 0.6rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-light);}
+        tr:hover td { background: rgba(255,255,255,0.05); }
+
+        /* RESPONSIVE DESIGN */
+        @media (max-width: 1200px) {
+            body { flex-direction: column; overflow: auto; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
+            .nav-menu { flex-direction: row; flex-wrap: wrap; }
+            .tab-view.active { grid-template-columns: 1fr; height: auto; }
+            .chart-grid-2 { grid-template-columns: 1fr; }
+            .smartboard { min-height: 800px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- BARRA LATERAL -->
+    <aside class="sidebar">
+        <div class="logo-area">
+            <h1 class="logo-title">Física<span>Moderna</span></h1>
+            <div class="students-info">
+                <strong>Ingeniería de Sistemas</strong>
+                Luis Felipe Cotes Castrillo (0182420031)<br>
+                Donharh Tusjee Correa Deluque (0182420011)<br>
+                Alana Marcela Lemus Mendoza (0182420051)<br>
+                Andres Mateo Lemus Ascanio (0182510054)
+            </div>
+        </div>
+
+        <nav class="nav-menu">
+            <button class="nav-item active" onclick="switchView('lab5', this)">☄️ Lab 5: Compton</button>
+            <button class="nav-item" onclick="switchView('lab6', this)">🎲 Lab 6: Monte Carlo</button>
+            <button class="nav-item" onclick="switchView('lab7', this)">⚛️ Lab 7: Modelo Bohr</button>
+        </nav>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="main-content">
+        
+        <!-- LAB 5: COMPTON -->
+        <div id="lab5" class="tab-view active">
+            <div class="panel">
+                <div class="panel-header">Parámetros Físicos</div>
+                <div class="form-group">
+                    <label>Energía Fotón Incidente (keV)</label>
+                    <input type="number" id="inp_E" value="125" placeholder="Ej: 20, 100, 500">
+                </div>
+                <button class="btn-run" onclick="runCompton()">Iniciar Simulación</button>
+                
+                <div id="res_5" class="results-box">
+                    <h4>Datos Calculados</h4>
+                    <div class="result-item"><span>λ inicial:</span> <strong id="out_c_l0">-</strong></div>
+                    <div class="result-item"><span>Δλ max (180°):</span> <strong id="out_c_dl">-</strong></div>
+                    <div class="result-item"><span>Energía max K_e:</span> <strong id="out_c_ke">-</strong></div>
+                </div>
+            </div>
+            
+            <div class="panel smartboard">
+                <div class="board-empty-state" id="empty_5">
+                    <span>📐</span>Ingresa la energía inicial (keV) y ejecuta.
+                </div>
+                <div class="chart-grid-2" id="grid_5">
+                    <div id="plot_c1" class="chart-wrapper"></div>
+                    <div id="plot_c2" class="chart-wrapper"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LAB 6: MONTE CARLO -->
+        <div id="lab6" class="tab-view">
+            <div class="panel">
+                <div class="panel-header">Variables Estocásticas</div>
+                <div class="form-group">
+                    <label>Población Inicial (N₀)</label>
+                    <input type="number" id="inp_N0" value="1000">
+                </div>
+                <div class="form-group">
+                    <label>Constante Decaimiento (λ)</label>
+                    <input type="number" step="0.01" id="inp_L" value="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Paso temporal (Δt)</label>
+                    <input type="number" step="0.1" id="inp_dt" value="0.5">
+                </div>
+                <button class="btn-run" onclick="runMonteCarlo()">Ejecutar Animación</button>
+                
+                <div id="res_6" class="results-box">
+                    <h4>Análisis de Decaimiento</h4>
+                    <div class="result-item"><span>Vida Media (t½):</span> <strong id="out_mc_thalf">-</strong></div>
+                    <div class="result-item"><span>Probabilidad por Δt:</span> <strong id="out_mc_p">-</strong></div>
+                    <div class="result-item"><span>Núcleos Restantes:</span> <strong id="out_mc_n">-</strong></div>
+                </div>
+            </div>
+            
+            <div class="panel smartboard">
+                <div class="board-empty-state" id="empty_6">
+                    <span>☢️</span>Simulación Monte Carlo lista para ejecución.
+                </div>
+                <div class="chart-grid" id="grid_6">
+                    <div id="plot_mc" class="chart-wrapper"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LAB 7: BOHR -->
+        <div id="lab7" class="tab-view">
+            <div class="panel">
+                <div class="panel-header">Cuantización H</div>
+                <div class="form-group">
+                    <label>Nivel Cuántico Máx. (n)</label>
+                    <input type="number" id="inp_n" value="6" min="2" max="20">
+                </div>
+                <button class="btn-run" onclick="runBohr()">Trazar Espectro</button>
+            </div>
+            
+            <div class="panel smartboard">
+                <div class="board-empty-state" id="empty_7">
+                    <span>🌈</span>Generador de transiciones atómicas.
+                </div>
+                <div class="chart-grid" id="grid_7" style="flex-grow: 1; display: flex; flex-direction: column;">
+                    <div id="plot_bohr" class="chart-wrapper" style="flex-grow: 1;"></div>
+                    
+                    <div class="bohr-table-wrapper" id="bohr_table_wrapper">
+                        <table id="bohr_table">
+                            <thead>
+                                <tr>
+                                    <th>Transición</th>
+                                    <th>Serie</th>
+                                    <th>Energía Fotón (eV)</th>
+                                    <th>Longitud de Onda (nm)</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const h = 6.62607015e-34; 
+        const c = 299792458.0; 
+        const m_e = 9.1093837e-31; 
+        const e_charge = 1.602176634e-19;
+        
+        const p_config = { responsive: true, displayModeBar: false };
+        const grid_color = 'rgba(255,255,255,0.03)';
+        
+        const base_layout = {
+            paper_bgcolor: 'rgba(0,0,0,0)', 
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { family: "system-ui", color: '#a1a1aa' },
+            margin: { t: 50, r: 20, l: 50, b: 40 },
+            xaxis: { 
+                showgrid: true, gridcolor: grid_color, 
+                zeroline: false, linecolor: 'rgba(255,255,255,0.1)', tickcolor: 'rgba(255,255,255,0.1)'
+            },
+            yaxis: { 
+                showgrid: true, gridcolor: grid_color, 
+                zeroline: false, linecolor: 'rgba(255,255,255,0.1)', tickcolor: 'rgba(255,255,255,0.1)'
+            }
+        };
+
+        let animTokens = { lab5: 0, lab6: 0, lab7: 0 };
+
+        function getSafeNumber(id) {
+            let val = parseFloat(document.getElementById(id).value.replace(',', '.'));
+            return isNaN(val) ? null : val;
+        }
+
+        function switchView(id, btn) {
+            document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(id).classList.add('active');
+            btn.classList.add('active');
+            
+            // Forzar resize para que Plotly recalcule los contenedores dinámicos
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
+        }
+
+        function showBoard(lab) {
+            document.getElementById(`empty_${lab}`).style.opacity = '0';
+            document.getElementById(`grid_${lab}`).style.opacity = '1';
+        }
+
+        // ================= LAB 5: COMPTON =================
+        async function runCompton() {
+            let val = getSafeNumber('inp_E');
+            if(!val || val <= 0) return alert("Ingrese una energía válida mayor a 0.");
+            
+            showBoard(5);
+            let token = ++animTokens.lab5; 
+            
+            let E0_j = val * 1000 * e_charge;
+            let L0 = (h * c) / E0_j;
+            let LC = h / (m_e * c);
+
+            document.getElementById('res_5').classList.add('visible');
+            document.getElementById('out_c_l0').innerText = (L0 * 1e12).toFixed(3) + " pm";
+            document.getElementById('out_c_dl').innerText = (2 * LC * 1e12).toFixed(3) + " pm";
+            
+            let E1_min = (h * c) / (L0 + 2 * LC);
+            let K_max_eV = (E0_j - E1_min) / e_charge / 1000;
+            document.getElementById('out_c_ke').innerText = K_max_eV.toFixed(3) + " keV";
+
+            let x = [], yL = [], yK = [], yE = [];
+            
+            Plotly.newPlot('plot_c1', [{ x: [], y: [], mode: 'lines', line: {color: '#f59e0b', width: 3} }], 
+                {
+                    ...base_layout, 
+                    title: '<b>Corrimiento (Δλ) vs θ</b>', 
+                    xaxis: { ...base_layout.xaxis, range: [0, 185] },
+                    yaxis: { ...base_layout.yaxis, title:'pm' }
+                }, p_config);
+            
+            Plotly.newPlot('plot_c2', [
+                { x: [], y: [], name: 'K_e (Electrón)', mode: 'lines', line: {color: '#10b981', width: 3} }, 
+                { x: [], y: [], name: "E' (Fotón)", mode: 'lines', line: {color: '#ef4444', width: 3} }      
+            ], {
+                ...base_layout, 
+                title: '<b>Fracciones de Energía</b>', 
+                xaxis: { ...base_layout.xaxis, range: [0, 185] },
+                yaxis: { ...base_layout.yaxis, range:[0,1], title: 'Fracción (E/E₀)' },
+                legend: { x: 0.98, y: 0.98, xanchor: 'right', yanchor: 'top', bgcolor: 'rgba(0,0,0,0)' }
+            }, p_config);
+
+            for(let t = 0; t <= 180; t+=4) {
+                if(animTokens.lab5 !== token) return; 
+                
+                let rad = t * Math.PI / 180;
+                x.push(t);
+                
+                let dl = LC * (1 - Math.cos(rad));
+                yL.push(dl * 1e12); 
+                
+                let E1_j = (h * c) / (L0 + dl);
+                yK.push((E0_j - E1_j) / E0_j);
+                yE.push(E1_j / E0_j);
+
+                Plotly.update('plot_c1', {x: [x], y: [yL]});
+                Plotly.update('plot_c2', {x: [x, x], y: [yK, yE]});
+                await new Promise(r => setTimeout(r, 15));
+            }
+        }
+
+        // ================= LAB 6: MONTE CARLO =================
+        async function runMonteCarlo() {
+            let N0 = getSafeNumber('inp_N0');
+            let lam = getSafeNumber('inp_L');
+            let dt = getSafeNumber('inp_dt');
+            if(!N0 || !lam || !dt) return alert("Verifique que todos los valores sean numéricos.");
+            
+            showBoard(6);
+            let token = ++animTokens.lab6;
+
+            let t_half = Math.LN2 / lam;
+            let pasos = Math.floor((5 * t_half) / dt);
+            let p = 1 - Math.exp(-lam * dt);
+            
+            document.getElementById('res_6').classList.add('visible');
+            document.getElementById('out_mc_thalf').innerText = t_half.toFixed(3) + " s";
+            document.getElementById('out_mc_p').innerText = (p * 100).toFixed(2) + " %";
+
+            let N_mc = N0;
+            let time = [0], yMC = [N0], yAn = [N0];
+
+            Plotly.newPlot('plot_mc', [
+                { x: [], y: [], name: 'Monte Carlo (Estocástico)', mode: 'lines', line: {shape: 'hv', color: '#10b981', width: 2}}, 
+                { x: [], y: [], name: 'Teórico (Exponencial)', mode: 'lines', line: {color: '#71717a', dash: 'dot', width: 2}}      
+            ], {
+                ...base_layout, 
+                title: '<b>Decaimiento Radiactivo</b>', 
+                xaxis: { ...base_layout.xaxis, title: 'Tiempo (s)' }, 
+                yaxis: { ...base_layout.yaxis, title: 'Núcleos Sobrevivientes N(t)' },
+                legend: { x: 0.98, y: 0.98, xanchor: 'right', yanchor: 'top', bgcolor: 'rgba(0,0,0,0.6)' }
+            }, p_config);
+
+            for(let k = 1; k <= pasos; k++) {
+                if(animTokens.lab6 !== token) return;
+                
+                let decaidos = 0;
+                for(let i=0; i<N_mc; i++) { if(Math.random() < p) decaidos++; }
+                N_mc -= decaidos;
+                
+                let t_act = k * dt;
+                time.push(t_act);
+                yMC.push(N_mc);
+                yAn.push(N0 * Math.exp(-lam * t_act));
+
+                Plotly.update('plot_mc', {x: [time, time], y: [yMC, yAn]});
+                
+                document.getElementById('out_mc_n').innerText = N_mc + " (Teórico: " + Math.round(yAn[yAn.length-1]) + ")";
+                
+                await new Promise(r => setTimeout(r, 20));
+            }
+        }
+
+        // ================= LAB 7: MODELO BOHR =================
+        async function runBohr() {
+            let n_max = parseInt(getSafeNumber('inp_n'));
+            if(!n_max || n_max < 2 || n_max > 20) return alert("Ingrese un nivel n válido (entre 2 y 20).");
+            
+            showBoard(7);
+            let token = ++animTokens.lab7;
+
+            let tbody = document.querySelector('#bohr_table tbody');
+            document.getElementById('bohr_table_wrapper').classList.add('visible');
+
+            let layout = {
+                ...base_layout, title: '<b>Emisión Cuantizada (Átomo de Hidrógeno)</b>', 
+                xaxis: {showgrid:false, zeroline:false, showticklabels:false}, 
+                yaxis: {showgrid: false, zeroline:false, title: 'Energía (eV)', range: [-15.5, 1]}, 
+                annotations: []
+            };
+            
+            await new Promise(r => setTimeout(r, 50));
+            
+            tbody.innerHTML = '';
+            Plotly.newPlot('plot_bohr', [], layout, p_config);
+
+            let traces = [];
+            for(let n = n_max; n >= 1; n--) {
+                if(animTokens.lab7 !== token) return;
+                
+                let E = -13.6 / (n * n);
+                traces.push({ x: [0, 1], y: [E, E], mode: 'lines', line: {color: 'rgba(255,255,255,0.15)', width: 2}, showlegend: false });
+                layout.annotations.push({ x: 1.02, y: E, text: `<b>n=${n}</b>`, showarrow: false, xanchor: 'left', font: {size: 13, color: '#a1a1aa'} });
+                
+                Plotly.react('plot_bohr', traces, layout);
+                await new Promise(r => setTimeout(r, 60));
+            }
+
+            const pal = {1: '#10b981', 2: '#f59e0b', 3: '#ec4899', 4: '#a855f7', 5: '#ef4444'};
+            const nombres = {1: 'Lyman', 2: 'Balmer', 3: 'Paschen', 4: 'Brackett', 5: 'Pfund'};
+            let x_p = 0.1, step = 0.8 / ((n_max*(n_max-1))/2);
+
+            for(let nf = 1; nf <= Math.min(n_max-1, 5); nf++) {
+                for(let ni = nf + 1; ni <= n_max; ni++) {
+                    if(animTokens.lab7 !== token) return;
+
+                    let Ei = -13.6/(ni*ni); let Ef = -13.6/(nf*nf);
+                    let E_foton = Ei - Ef;
+                    let lambda_nm = (h * c) / (E_foton * e_charge) * 1e9;
+                    let serie = nombres[nf] || 'Otra';
+                    let c_hex = pal[nf] || '#71717a';
+
+                    layout.annotations.push({
+                        ax: x_p, ay: Ei, x: x_p, y: Ef,
+                        xref: 'x', yref: 'y', axref: 'x', ayref: 'y',
+                        showarrow: true, arrowhead: 2, arrowsize: 1.5, arrowcolor: c_hex
+                    });
+                    
+                    let row = `<tr>
+                        <td>n=${ni} &rarr; n=${nf}</td>
+                        <td style="color: ${c_hex}; font-weight: 600;">${serie}</td>
+                        <td>${E_foton.toFixed(3)}</td>
+                        <td>${lambda_nm.toFixed(2)}</td>
+                    </tr>`;
+                    tbody.insertAdjacentHTML('beforeend', row);
+
+                    x_p += step;
+                    Plotly.react('plot_bohr', traces, layout);
+                    
+                    // Auto-scroll the table to bottom as new rows are added
+                    let tableWrapper = document.getElementById('bohr_table_wrapper');
+                    tableWrapper.scrollTop = tableWrapper.scrollHeight;
+                    
+                    await new Promise(r => setTimeout(r, 45)); 
+                }
+            }
+        }
+    </script>
+</body>
+</html>
